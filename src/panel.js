@@ -83,6 +83,11 @@ function renderList() {
     GROUPS.map((group) => section(group, TOOLS.filter((tool) => tool.group === group))))
 }
 
+// Retained views keep their input, but only the displayed tool should run live work.
+function activateViews() {
+  for (const [id, { view }] of built) view.setActive?.(home.hidden && current === id && !document.hidden)
+}
+
 function open(id, value) {
   const tool = byId.get(id)
   if (!built.has(id)) {
@@ -102,6 +107,7 @@ function open(id, value) {
   header.hidden = false
   home.hidden = true
   views.hidden = false
+  activateViews()
   recent = [id, ...recent.filter((other) => other !== id)].slice(0, RECENT_LIMIT)
   save('recent', recent)
   save('last', id)
@@ -112,6 +118,7 @@ function goHome() {
   header.hidden = true
   views.hidden = true
   home.hidden = false
+  activateViews()
   search.value = ''
   renderList()
   search.focus()
@@ -152,6 +159,7 @@ list.addEventListener('keydown', (event) => {
   items[Math.min(items.length - 1, Math.max(0, index + (event.key === 'ArrowDown' ? 1 : -1)))].focus()
 })
 back.addEventListener('click', goHome)
+document.addEventListener('visibilitychange', activateViews)
 pin.addEventListener('click', () => {
   pinned = pinned.includes(current) ? pinned.filter((id) => id !== current) : [...pinned, current]
   save('pinned', pinned)

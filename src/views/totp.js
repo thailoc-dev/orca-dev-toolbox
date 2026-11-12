@@ -21,6 +21,7 @@ export default {
     } }, 'New secret')
     let timer = null
     let options = null
+    let active = true
     function render() {
       if (!options) return
       const { key, label, ...opts } = options
@@ -53,8 +54,9 @@ export default {
           options = { key: base32Decode(value), digits: Number(digits.value), period: Number(period.value), algorithm: algorithm.value }
         }
         render()
-        timer = setInterval(render, 1000)
+        if (active) timer = setInterval(render, 1000)
       } catch (error) {
+        options = null
         set(result, errorText(error.message))
       }
     }
@@ -63,6 +65,15 @@ export default {
     return {
       node: h('div', {}, field('Secret (Base32) or otpauth URI', secret), h('div', { class: 'bar' }, digits, period, algorithm, generate), result),
       focus: secret,
+      setActive(value) {
+        if (active === value) return
+        active = value
+        clearInterval(timer)
+        if (active && options) {
+          render()
+          timer = setInterval(render, 1000)
+        }
+      },
       fill(value) {
         secret.value = value
         update()
