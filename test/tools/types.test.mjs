@@ -19,3 +19,40 @@ test('JSON to types: optional, nullable, nested and named', () => {
   assert.equal(jsonToTypes('[{"a":1},{"a":null}]'), 'export type Root = RootItem[]\n\nexport interface RootItem {\n  a: number | null\n}')
   assert.throws(() => jsonToTypes('{'), /Not valid JSON/)
 })
+
+test('Go aligns each struct independently, including empty, optional and nullable fields', () => {
+  assert.equal(jsonToTypes('{}', 'go'), 'type Root struct {\n}')
+  assert.equal(jsonToTypes('[{"id":1,"long_name":"a","meta":{}},{"id":null,"meta":{}}]', 'go'), [
+    'type Root []RootItem', '',
+    'type RootItem struct {',
+    '\tID       *int64  `json:"id"`',
+    '\tLongName *string `json:"long_name,omitempty"`',
+    '\tMeta     Meta    `json:"meta"`',
+    '}', '',
+    'type Meta struct {', '}'
+  ].join('\n'))
+})
+
+test('Go formatting calculates column widths with linear field visits', () => {
+  for (const size of [100, 1000]) {
+    const sample = Object.fromEntries(Array.from({ length: size }, (_, i) => [`field_${i}`, i]))
+    const originalMax = Math.max
+    let widthVisits = 0
+    let go
+    try {
+      // Count the field-width work without a machine-dependent timing threshold.
+      Math.max = (...values) => { widthVisits += values.length; return originalMax(...values) }
+      go = jsonToTypes(JSON.stringify(sample), 'go')
+    } finally {
+      Math.max = originalMax
+    }
+    assert.ok(widthVisits <= 4 * size, `${size} fields required ${widthVisits} width visits`)
+    const nameWidth = `Field${size - 1}`.length
+    const expected = [
+      'type Root struct {',
+      ...Array.from({ length: size }, (_, i) => `\t${`Field${i}`.padEnd(nameWidth)} int64 \`json:"field_${i}"\``),
+      '}'
+    ].join('\n')
+    assert.equal(go, expected)
+  }
+})

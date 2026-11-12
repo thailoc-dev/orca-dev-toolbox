@@ -142,8 +142,13 @@ const LANGUAGES = {
     }
     const blocks = types.map((type) => {
       const fields = [...type.fields].map(([key, field]) => [goName(key), ref(field.shape, field.optional), `\`json:"${key}${field.optional ? ',omitempty' : ''}"\``])
-      const width = (i) => Math.max(...fields.map((f) => f[i].length))
-      return [`type ${type.name} struct {`, ...fields.map((f) => `\t${f[0].padEnd(width(0))} ${f[1].padEnd(width(1))} ${f[2]}`), '}'].join('\n')
+      let nameWidth = 0
+      let typeWidth = 0
+      for (const [name, fieldType] of fields) {
+        nameWidth = Math.max(nameWidth, name.length)
+        typeWidth = Math.max(typeWidth, fieldType.length)
+      }
+      return [`type ${type.name} struct {`, ...fields.map((f) => `\t${f[0].padEnd(nameWidth)} ${f[1].padEnd(typeWidth)} ${f[2]}`), '}'].join('\n')
     })
     if (root.kind !== 'object') blocks.unshift(`type Root ${ref(root)}`)
     return blocks.join('\n\n')
