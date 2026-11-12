@@ -285,10 +285,15 @@ function children(node) {
   return []
 }
 
-function descendants(node) {
-  const out = [node]
-  for (const child of children(node)) out.push(...descendants(child))
-  return out
+function* descendants(node) {
+  const pending = [node]
+  while (pending.length) {
+    const current = pending.pop()
+    yield current
+    const next = children(current)
+    // Reverse the stack insertion to retain depth-first document order.
+    for (let i = next.length - 1; i >= 0; i--) pending.push(next[i])
+  }
 }
 
 function apply(selector, node, root) {
@@ -324,7 +329,7 @@ function select(steps, nodes, root) {
     const next = []
     for (const node of current) {
       const targets = step.type === 'deep' ? descendants(node) : [node]
-      for (const target of targets) for (const s of step.selectors) next.push(...apply(s, target, root))
+      for (const target of targets) for (const s of step.selectors) for (const match of apply(s, target, root)) next.push(match)
     }
     current = next
   }
