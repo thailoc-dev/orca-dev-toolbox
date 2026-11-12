@@ -2,7 +2,7 @@
   "manifestVersion": 2,
   "id": "dev-toolbox",
   "name": "Dev Toolbox",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "execution": "sandboxed-ui",
   "description": "49 offline developer tools in Orca's sidebar: JWT, certificates, Docker run to Compose, JSON diff, TOML, secret redaction, LLM token counter, ANSI log cleaner, cron, regex and more.",
   "license": "MIT",

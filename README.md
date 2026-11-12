@@ -18,7 +18,7 @@ From the community catalog: open
 To get the latest release before the catalog picks it up, install from Git in Settings → Plugins:
 
 ```
-https://github.com/thailoc-dev/orca-dev-toolbox.git#v0.8.0
+https://github.com/thailoc-dev/orca-dev-toolbox.git#v0.8.1
 ```
 
 Requires Orca 1.4.246 or later.

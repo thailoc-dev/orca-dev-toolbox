@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.1 – 2026-11-12
+
+### Fixed
+- JSON Query: recursive (`..`) and wildcard queries on large or deeply nested documents no longer fail with "Maximum call stack size exceeded", and no longer copy each subtree into its parents. Thanks @AmethystLiang (#2).
+
+### Changed
+- TOTP / 2FA stops refreshing codes while you are on another tool, the tool list or the panel is hidden, and shows the current code straight away when you come back. Thanks @AmethystLiang (#3).
+- JSON to Types: Go structs work out their column widths once instead of once per field, so large objects convert faster. Thanks @AmethystLiang (#1).
+
 ## 0.8.0 – 2026-11-07
 
 ### Added
