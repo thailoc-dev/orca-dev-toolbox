@@ -24,14 +24,23 @@ export default {
     const result = h('div', { class: 'result' })
     const out = output('Matches')
     const showPaths = checkbox('Show paths', () => update())
-    function update() {
-      if (!source.value.trim()) return set(result, hint('Paste JSON, such as an API response, then write a query.'))
-      let data
-      try {
-        data = JSON.parse(source.value)
-      } catch (error) {
-        return set(result, errorText(`Not valid JSON: ${error.message}`))
+    let data
+    let parseError
+    function readSource() {
+      data = undefined
+      parseError = null
+      if (source.value.trim()) {
+        try {
+          data = JSON.parse(source.value)
+        } catch (error) {
+          parseError = error
+        }
       }
+      update()
+    }
+    function update() {
+      if (parseError) return set(result, errorText(`Not valid JSON: ${parseError.message}`))
+      if (data === undefined) return set(result, hint('Paste JSON, such as an API response, then write a query.'))
       if (!path.value.trim()) return set(result, hint('Write a query above, or pick an example.'))
       try {
         const matches = queryJson(data, path.value)
@@ -45,7 +54,7 @@ export default {
     }
     const examples = h('div', { class: 'chips' }, EXAMPLES.map(([query, label]) =>
       h('button', { type: 'button', class: 'chip', title: query, onclick: () => { path.value = query; update() } }, label)))
-    source.addEventListener('input', update)
+    source.addEventListener('input', readSource)
     path.addEventListener('input', update)
     update()
     return {
@@ -53,7 +62,7 @@ export default {
       focus: source,
       fill(value) {
         source.value = value
-        update()
+        readSource()
       }
     }
   }

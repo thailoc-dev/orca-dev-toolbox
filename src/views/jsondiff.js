@@ -3,6 +3,60 @@ import { checkbox, copyButton, errorText, field, h, hint, input, set, textarea }
 
 const LABELS = { added: 'Added', removed: 'Removed', changed: 'Changed', type: 'Type changed' }
 const SIGNS = { added: '+', removed: '−', changed: '~', type: '~' }
+const PAGE_SIZE = 200
+
+function changeRow(change) {
+  const { kind, path, from, to } = change
+  const oldValue = kind === 'added' ? null : h('code', { class: 'change-old' }, preview(from))
+  const newValue = kind === 'removed' ? null : h('code', { class: 'change-new' }, preview(to))
+  return h('div', { class: `change ${kind}` },
+    h('span', { class: 'change-sign', 'aria-label': LABELS[kind] }, SIGNS[kind]),
+    h('span', { class: 'change-body' },
+      h('code', { class: 'change-path' }, path),
+      oldValue && newValue ? h('span', {}, oldValue, ' → ', newValue) : oldValue ?? newValue))
+}
+
+function changeReport(changes) {
+  return changes.map(({ kind, path, from, to }) => {
+    const values = kind === 'added' ? [to] : kind === 'removed' ? [from] : [from, to]
+    return `${SIGNS[kind]} ${path}: ${values.map((value) => preview(value, 200)).join(' → ')}`
+  }).join('\n')
+}
+
+function renderChanges(result, changes) {
+  const counts = new Map()
+  for (const { kind } of changes) counts.set(kind, (counts.get(kind) ?? 0) + 1)
+  const summary = Array.from(counts, ([kind, count]) => `${count} ${LABELS[kind].toLowerCase()}`).join(' · ')
+  const header = h('div', { class: 'block-head plain' }, h('span', {}, summary),
+    copyButton(() => changeReport(changes), 'Copy the changes'))
+  const body = h('div', { class: 'changes' })
+  if (changes.length <= PAGE_SIZE) {
+    set(body, changes.map(changeRow))
+    return set(result, header, body)
+  }
+
+  let start = 0
+  const status = h('span', { 'aria-live': 'polite' })
+  const previous = h('button', { type: 'button', class: 'secondary', onclick: () => {
+    start -= PAGE_SIZE
+    renderPage(next)
+  } }, 'Previous')
+  const next = h('button', { type: 'button', class: 'secondary', onclick: () => {
+    start += PAGE_SIZE
+    renderPage(previous)
+  } }, 'Next')
+  function renderPage(fallbackFocus) {
+    const end = Math.min(start + PAGE_SIZE, changes.length)
+    const focused = document.activeElement
+    previous.disabled = start === 0
+    next.disabled = end === changes.length
+    status.textContent = `${start + 1}–${end} of ${changes.length}`
+    set(body, changes.slice(start, end).map(changeRow))
+    if ((focused === previous || focused === next) && focused.disabled) fallbackFocus?.focus()
+  }
+  renderPage()
+  set(result, header, h('nav', { class: 'block-head plain', 'aria-label': 'Diff pages' }, previous, status, next), body)
+}
 
 export default {
   id: 'jsondiff',
@@ -18,29 +72,16 @@ export default {
     const ignore = input({ class: 'mono', placeholder: 'updatedAt, requestId', 'aria-label': 'Keys to ignore' })
     const unordered = checkbox('Arrays in any order', () => update())
     const result = h('div', { class: 'result' })
-    let report = ''
     function update() {
       if (!left.value.trim() || !right.value.trim()) return set(result, hint('Paste two JSON documents, such as one API response from staging and one from production. Key order never counts.'))
       try {
         const keys = ignore.value.split(/[\s,]+/).filter(Boolean)
         const changes = diffJson(left.value, right.value, { unordered: unordered.get(), ignore: keys })
         if (!changes.length) {
-          report = ''
           return set(result, h('p', { class: 'sentence ok-text' }, 'Same data.'), keys.length ? hint(`Ignoring ${keys.join(', ')}.`) : null)
         }
-        const counts = Object.entries(Object.groupBy(changes, (c) => c.kind)).map(([kind, list]) => `${list.length} ${LABELS[kind].toLowerCase()}`)
-        report = changes.map((c) => `${SIGNS[c.kind]} ${c.path}: ${c.kind === 'added' ? preview(c.to, 200) : c.kind === 'removed' ? preview(c.from, 200) : `${preview(c.from, 200)} → ${preview(c.to, 200)}`}`).join('\n')
-        set(result,
-          h('div', { class: 'block-head plain' }, h('span', {}, counts.join(' · ')), copyButton(() => report, 'Copy the changes')),
-          h('div', { class: 'changes' }, changes.map((c) => h('div', { class: `change ${c.kind}` },
-            h('span', { class: 'change-sign', 'aria-label': LABELS[c.kind] }, SIGNS[c.kind]),
-            h('span', { class: 'change-body' },
-              h('code', { class: 'change-path' }, c.path),
-              c.kind === 'added' ? h('code', { class: 'change-new' }, preview(c.to)) : null,
-              c.kind === 'removed' ? h('code', { class: 'change-old' }, preview(c.from)) : null,
-              c.kind === 'changed' || c.kind === 'type' ? h('span', {}, h('code', { class: 'change-old' }, preview(c.from)), ' → ', h('code', { class: 'change-new' }, preview(c.to))) : null)))))
+        renderChanges(result, changes)
       } catch (error) {
-        report = ''
         set(result, errorText(error.message))
       }
     }

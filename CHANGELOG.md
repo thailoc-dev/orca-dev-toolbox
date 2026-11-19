@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.2 – 2026-11-20
+
+### Changed
+- JSON Diff shows large comparisons 200 changes at a time. Copy includes changes from every page.
+- JSON Query reuses parsed JSON while you edit the query or toggle Show paths.
+
 ## 0.8.1 – 2026-11-12
 
 ### Fixed

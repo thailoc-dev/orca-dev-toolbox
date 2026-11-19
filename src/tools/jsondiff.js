@@ -34,7 +34,10 @@ function walk(a, b, parts, changes, options) {
     if (options.unordered) {
       // Each element is matched with an equal one on the other side; what is left was removed or added.
       const left = new Map()
-      for (const item of a) left.set(canonical(item), (left.get(canonical(item)) ?? 0) + 1)
+      for (const item of a) {
+        const key = canonical(item)
+        left.set(key, (left.get(key) ?? 0) + 1)
+      }
       const added = []
       for (const item of b) {
         const key = canonical(item)
@@ -81,7 +84,9 @@ export function diffJson(leftText, rightText, { unordered = false, ignore = [], 
     return value
   }
   const changes = []
-  walk(strip(read(leftText, 'Left')), strip(read(rightText, 'Right')), [], changes, { unordered, numbers })
+  const left = read(leftText, 'Left')
+  const right = read(rightText, 'Right')
+  walk(skip.size ? strip(left) : left, skip.size ? strip(right) : right, [], changes, { unordered, numbers })
   return changes
 }
 
